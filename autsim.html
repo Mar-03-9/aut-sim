@@ -1,0 +1,2011 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    
+    <title>Construtor de Autômatos Finitos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 1240px;
+        }
+        #canvas {
+            border: 2px solid #ccc;
+            background: white;
+            margin: 8px auto 0 auto;
+            display: block;
+        }
+        .toolbar {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .simulacao {
+            margin-bottom: 10px;
+        }
+        .alfabeto-section {
+            margin-bottom: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+            color: #333;
+        }
+        
+        input[type="text"] {
+            background: white;
+            color: #333;
+            border: 1px solid #ccc;
+        }
+
+        .symbol-tag {
+            background: #e0e0e0;
+            color: #333;
+            padding: 5px 15px;
+            border-radius: 15px;
+            display: inline-block;
+            margin: 5px;
+            cursor: pointer;
+        }
+
+        select {
+            background: white;
+            color: #333;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            color: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        
+        button[onclick="addState()"],
+        button[onclick="setTransitionMode()"] {
+            background: linear-gradient(135deg, #4361EE, #3F37C9);
+        }
+
+        button[onclick="addSymbol()"] {
+            background: linear-gradient(135deg, #212c5f, #260c63);
+        }
+        /* Botões de definição de estados */
+        button[onclick="toggleInitialState()"],
+        button[onclick="toggleFinalState()"] {
+            background: linear-gradient(135deg, #564caf, #22178b);
+        }
+        /* Botões de remoção/limpeza */
+        button[onclick="deleteElement()"],
+        button[onclick="clearCanvas()"],
+        button[onclick="clearAlphabet()"] {
+            background: linear-gradient(135deg, #5e2774, #721385);
+        }
+        /* Botões de importação/exportação */
+        button[onclick="exportarJSON()"],
+        button[onclick="importarJSON()"],
+        button[onclick="exportarJPEG()"],
+        button[onclick="exportarTexto()"],
+        button[onclick="importarTexto()"] {
+            background: linear-gradient(135deg, #7209B7, #560BAD);
+        }
+        /* Efeito hover para todos os botões */
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            filter: brightness(110%);
+        }
+        /* Efeito quando o botão está ativo */
+        button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        .symbol-button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background: linear-gradient(135deg, #4A90E2, #357ABD);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .symbol-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(74,144,226,0.3);
+            filter: brightness(110%);
+        }
+        .modal h3 {
+            color: #357ABD;
+            margin-bottom: 15px;
+        }
+        #symbol-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        #symbol-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        /* Estilo do tooltip de coordenadas */
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+        }
+
+        /* Adiciona estilos para tooltips e botões ativos */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip-text {
+            visibility: hidden;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            text-align: center;
+            padding: 5px 10px;
+            border-radius: 6px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .button-active {
+            transform: scale(0.95);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2) !important;
+            filter: brightness(90%);
+        }
+
+        /* Adiciona um indicador de modo */
+        .mode-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 14px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .mode-indicator.visible {
+            opacity: 1;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        h1 {
+            margin-bottom: 8px;
+        }
+        .alfabeto-section h3 {
+            margin-bottom: 4px;
+        }
+        #symbol-list {
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Construtor de Autômatos Finitos</h1>
+        
+        <div class="toolbar" style="margin-bottom: 10px; align-items: center;">
+            <h3 style="margin: 0 15px 0 0; font-size: 18px;">Simulação</h3>
+            <input type="text" id="input-palavra" placeholder="Digite a palavra para simular" style="padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 15px; width: 220px;">
+            <button onclick="simularPalavraAnimada()" style="background: linear-gradient(135deg, #4361EE, #3F37C9); margin-left: 10px;">Simular</button>
+            <span id="resultado-simulacao" style="margin-left: 20px; font-weight: bold; font-size: 16px;"></span>
+        </div>
+
+        <div class="toolbar" style="margin-bottom: 10px; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="tooltip-container">
+                    <button onclick="exportarJSON()" style="background: linear-gradient(135deg, #7209B7, #560BAD)">Exportar JSON</button>
+                    <span class="tooltip-text">Salvar autômato em formato JSON</span>
+                </div>
+                <div class="tooltip-container">
+                    <button onclick="importarJSON()" style="background: linear-gradient(135deg, #7209B7, #560BAD)">Importar JSON</button>
+                    <span class="tooltip-text">Carregar autômato de arquivo JSON</span>
+                </div>
+                <div class="tooltip-container">
+                    <button onclick="exportarJPEG()" style="background: linear-gradient(135deg, #7209B7, #560BAD)">Exportar JPEG</button>
+                    <span class="tooltip-text">Salvar imagem do autômato</span>
+                </div>
+                <div class="tooltip-container">
+                    <button onclick="exportarTexto()" style="background: linear-gradient(135deg, #7209B7, #560BAD)">Exportar Texto</button>
+                    <span class="tooltip-text">Salvar descrição textual do autômato</span>
+                </div>
+                <div class="tooltip-container">
+                    <button onclick="importarTexto()" style="background: linear-gradient(135deg, #7209B7, #560BAD)">Importar Texto</button>
+                    <span class="tooltip-text">Carregar autômato de arquivo de texto</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <!-- Grupo de criação -->
+            <div class="tooltip-container">
+                <button onclick="addState()" id="addStateBtn">Adicionar Estado</button>
+                <span class="tooltip-text">Criar novo estado (Atalho: A)</span>
+            </div>
+            <div class="tooltip-container">
+                <button onclick="setTransitionMode()" id="transitionBtn">Criar Transição</button>
+                <span class="tooltip-text">Criar transição entre estados (Atalho: T)</span>
+            </div>
+            
+            <!-- Grupo de estados especiais -->
+            <div class="tooltip-container">
+                <button onclick="toggleInitialState()" id="initialStateBtn">Definir Estado Inicial</button>
+                <span class="tooltip-text">Marcar/Desmarcar estado como inicial (Atalho: I)</span>
+            </div>
+            <div class="tooltip-container">
+                <button onclick="toggleFinalState()" id="finalStateBtn">Definir Estado Final</button>
+                <span class="tooltip-text">Marcar/Desmarcar estado como final (Atalho: F)</span>
+            </div>
+            
+            <!-- Grupo de remoção -->
+            <div class="tooltip-container">
+                <button onclick="deleteElement()" id="deleteBtn">Apagar Elemento</button>
+                <span class="tooltip-text">Apagar estado selecionado (Atalho: Delete)</span>
+            </div>
+            <div class="tooltip-container">
+                <button onclick="clearCanvas()" id="clearBtn">Limpar Tudo</button>
+                <span class="tooltip-text">Remover todos os estados e transições</span>
+            </div>
+        </div>
+
+        <div class="alfabeto-section">
+            <h3>Alfabeto:</h3>
+            <div class="tooltip-container">
+                <input type="text" id="symbol-input" placeholder="Digite um símbolo" style="width: 180px; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 15px; margin-right: 10px;">
+                <span class="tooltip-text">Digite um símbolo e pressione Enter ou clique em Adicionar</span>
+            </div>
+            <div class="tooltip-container">
+                <button onclick="addSymbol()">Adicionar ao Alfabeto</button>
+                <span class="tooltip-text">Adicionar símbolo ao alfabeto</span>
+            </div>
+            <div class="tooltip-container">
+                <button onclick="clearAlphabet()" style="background: linear-gradient(135deg, #212c5f, #260c63);">Limpar Alfabeto</button>
+                <span class="tooltip-text">Remover todos os símbolos do alfabeto</span>
+            </div>
+            <div id="symbol-list"></div>
+        </div>
+
+        <canvas id="canvas" width="1200" height="500"></canvas>
+    </div>
+
+    <div class="modal-overlay" id="modal-overlay"></div>
+    <div class="modal" id="symbol-modal">
+        <h3>Selecione o símbolo para a transição:</h3>
+        <div id="symbol-buttons"></div>
+    </div>
+
+    <div class="modal" id="filename-modal">
+        <h3>Nome do arquivo</h3>
+        <div style="margin: 20px 0;">
+            <input type="text" id="filename-input" placeholder="Digite o nome do arquivo" 
+                style="margin: 10px 0; padding: 8px; width: 250px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+            <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                Extensão: <span id="file-extension" style="font-weight: bold;"></span>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button onclick="cancelarExportacao()" style="background: #6c757d">Cancelar</button>
+            <button onclick="confirmarExportacao()" style="background: #357ABD">Confirmar</button>
+        </div>
+    </div>
+
+    <div id="coordTooltip" class="tooltip"></div>
+
+    <div id="modeIndicator" class="mode-indicator">Modo: Normal</div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const symbolModal = document.getElementById('symbol-modal');
+        const modalOverlay = document.getElementById('modal-overlay');
+        
+        let states = [];
+        let transitions = [];
+        let alphabet = [];  // Inicializa vazio para forçar a chamada do garanteLambda
+        let isDragging = false;
+        let selectedState = null;
+        let transitionMode = false;
+        let transitionStart = null;
+        let transitionEnd = null;
+        let tipoExportacaoAtual = '';
+        let selectedTransition = null;
+
+        // Função para garantir que o lambda esteja sempre presente
+        function garanteLambda() {
+            if (!alphabet) {
+                alphabet = ['λ'];
+            } else if (!alphabet.includes('λ')) {
+                alphabet = ['λ', ...alphabet];
+            }
+            updateSymbolList();
+        }
+
+        // Garante lambda no carregamento inicial
+        garanteLambda();
+
+        // Sistema de histórico para Undo/Redo
+        const historico = {
+            acoes: [],
+            posicaoAtual: -1,
+            maxAcoes: 50, // Limite máximo de ações armazenadas
+
+            // Adiciona uma nova ação ao histórico
+            adicionarAcao(acao) {
+                // Remove ações futuras se estiver no meio do histórico
+                this.acoes = this.acoes.slice(0, this.posicaoAtual + 1);
+                
+                // Adiciona a nova ação
+                this.acoes.push(acao);
+                this.posicaoAtual++;
+                
+                // Remove ações antigas se exceder o limite
+                if (this.acoes.length > this.maxAcoes) {
+                    this.acoes.shift();
+                    this.posicaoAtual--;
+                }
+                
+                // Atualiza estado dos botões
+                this.atualizarBotoesUndoRedo();
+            },
+
+            // Desfaz a última ação
+            undo() {
+                if (this.posicaoAtual >= 0) {
+                    const acao = this.acoes[this.posicaoAtual];
+                    acao.desfazer();
+                    this.posicaoAtual--;
+                    this.atualizarBotoesUndoRedo();
+                    drawAutomaton();
+                }
+            },
+
+            // Refaz a última ação desfeita
+            redo() {
+                if (this.posicaoAtual < this.acoes.length - 1) {
+                    this.posicaoAtual++;
+                    const acao = this.acoes[this.posicaoAtual];
+                    acao.refazer();
+                    this.atualizarBotoesUndoRedo();
+                    drawAutomaton();
+                }
+            },
+
+            // Atualiza o estado dos botões de Undo/Redo
+            atualizarBotoesUndoRedo() {
+                const undoBtn = document.getElementById('undoBtn');
+                const redoBtn = document.getElementById('redoBtn');
+                
+                if (undoBtn && redoBtn) {
+                    undoBtn.disabled = this.posicaoAtual < 0;
+                    redoBtn.disabled = this.posicaoAtual >= this.acoes.length - 1;
+                    
+                    // Atualiza as tooltips
+                    const undoTooltip = undoBtn.nextElementSibling;
+                    const redoTooltip = redoBtn.nextElementSibling;
+                    
+                    if (this.posicaoAtual >= 0 && this.acoes[this.posicaoAtual]) {
+                        undoTooltip.textContent = `Desfazer: ${this.acoes[this.posicaoAtual].descricao} (Ctrl+Z)`;
+                    } else {
+                        undoTooltip.textContent = 'Nada para desfazer (Ctrl+Z)';
+                    }
+                    
+                    if (this.posicaoAtual < this.acoes.length - 1 && this.acoes[this.posicaoAtual + 1]) {
+                        redoTooltip.textContent = `Refazer: ${this.acoes[this.posicaoAtual + 1].descricao} (Ctrl+Y)`;
+                    } else {
+                        redoTooltip.textContent = 'Nada para refazer (Ctrl+Y)';
+                    }
+                }
+            }
+        };
+
+        // Classes de ações para o histórico
+        class AcaoAdicionarEstado {
+            constructor(estado) {
+                this.estado = estado;
+                this.descricao = `Adicionar estado ${estado.label}`;
+            }
+            
+            desfazer() {
+                states = states.filter(s => s !== this.estado);
+                if (selectedState === this.estado) {
+                    selectedState = null;
+                }
+            }
+            
+            refazer() {
+                states.push(this.estado);
+            }
+        }
+
+        class AcaoRemoverEstado {
+            constructor(estado, transicoes) {
+                this.estado = estado;
+                this.transicoes = transicoes;
+                this.descricao = `Remover estado ${estado.label}`;
+            }
+            
+            desfazer() {
+                states.push(this.estado);
+                this.transicoes.forEach(t => transitions.push(t));
+            }
+            
+            refazer() {
+                states = states.filter(s => s !== this.estado);
+                transitions = transitions.filter(t => 
+                    t.from !== this.estado && t.to !== this.estado
+                );
+            }
+        }
+
+        class AcaoAdicionarTransicao {
+            constructor(transicao) {
+                this.transicao = transicao;
+                this.descricao = `Adicionar transição ${transicao.from.label} → ${transicao.to.label}`;
+            }
+            
+            desfazer() {
+                transitions = transitions.filter(t => t !== this.transicao);
+            }
+            
+            refazer() {
+                transitions.push(this.transicao);
+            }
+        }
+
+        class AcaoMoverEstado {
+            constructor(estado, posicaoAntiga, posicaoNova) {
+                this.estado = estado;
+                this.posicaoAntiga = { x: posicaoAntiga.x, y: posicaoAntiga.y };
+                this.posicaoNova = { x: posicaoNova.x, y: posicaoNova.y };
+                this.descricao = `Mover estado ${estado.label}`;
+            }
+            
+            desfazer() {
+                this.estado.x = this.posicaoAntiga.x;
+                this.estado.y = this.posicaoAntiga.y;
+            }
+            
+            refazer() {
+                this.estado.x = this.posicaoNova.x;
+                this.estado.y = this.posicaoNova.y;
+            }
+        }
+
+        class AcaoAlterarTipoEstado {
+            constructor(estado, tipoAlterado, valorAntigo) {
+                this.estado = estado;
+                this.tipoAlterado = tipoAlterado; // 'initial' ou 'final'
+                this.valorAntigo = valorAntigo;
+                this.valorNovo = !valorAntigo;
+                this.descricao = `${this.valorNovo ? 'Definir' : 'Remover'} estado ${estado.label} como ${tipoAlterado}`;
+            }
+            
+            desfazer() {
+                if (this.tipoAlterado === 'initial') {
+                    this.estado.isInitial = this.valorAntigo;
+                } else {
+                    this.estado.isFinal = this.valorAntigo;
+                }
+            }
+            
+            refazer() {
+                if (this.tipoAlterado === 'initial') {
+                    this.estado.isInitial = this.valorNovo;
+                } else {
+                    this.estado.isFinal = this.valorNovo;
+                }
+            }
+        }
+
+        let currentStyle = {
+            state: {
+                fill: ['#4A90E2', '#357ABD'],
+                selected: ['#357ABD', '#2E5B99'],
+                stroke: 'white',
+                text: 'white'
+            },
+            transition: {
+                line: '#4A90E2',
+                arrow: '#357ABD',
+                text: '#357ABD',
+                textBg: 'white'
+            }
+        };
+
+        function updateSymbolList() {
+            const list = document.getElementById('symbol-list');
+            list.innerHTML = '';
+            alphabet.forEach(symbol => {
+                const tag = document.createElement('span');
+                tag.className = 'symbol-tag';
+                tag.textContent = symbol;
+                tag.onclick = () => {
+                    if (confirm(`Remover "${symbol}" do alfabeto?`)) {
+                        alphabet = alphabet.filter(s => s !== symbol);
+                        updateSymbolList();
+                    }
+                };
+                list.appendChild(tag);
+            });
+        }
+
+        function addSymbol() {
+            const input = document.getElementById('symbol-input');
+            const symbol = input.value.trim();
+            if (symbol && !alphabet.includes(symbol)) {
+                alphabet.push(symbol);
+                input.value = '';
+                updateSymbolList();
+            }
+        }
+
+        document.getElementById('symbol-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addSymbol();
+            }
+        });
+
+        function showSymbolModal(callback) {
+            const buttons = document.getElementById('symbol-buttons');
+            buttons.innerHTML = '';
+            
+            if (alphabet.length === 0) {
+                alert('Adicione símbolos ao alfabeto primeiro!');
+                transitionMode = false;
+                transitionStart = null;
+                transitionEnd = null;
+                canvas.style.cursor = 'default';
+                return;
+            }
+
+            alphabet.forEach(symbol => {
+                const button = document.createElement('button');
+                button.className = 'symbol-button';
+                button.textContent = symbol;
+                button.onclick = () => {
+                    callback(symbol);
+                    hideSymbolModal();
+                };
+                buttons.appendChild(button);
+            });
+
+            modalOverlay.style.display = 'block';
+            symbolModal.style.display = 'block';
+        }
+
+        function hideSymbolModal() {
+            modalOverlay.style.display = 'none';
+            symbolModal.style.display = 'none';
+        }
+
+        function State(x, y, label) {
+            this.x = x;
+            this.y = y;
+            this.label = label;
+            this.isInitial = false;
+            this.isFinal = false;
+            this.isHighlighted = false; // Adiciona a propriedade de destaque
+        }
+
+        function Transition(from, to, symbol) {
+            this.from = from;
+            this.to = to;
+            this.symbol = symbol;
+            this.animationProgress = 0;
+            this.isAnimating = true;
+            this.isHighlighted = false; // Adiciona a propriedade de destaque
+            
+            // Verifica se é um self-loop (transição para o mesmo estado)
+            if (from === to) {
+                this.controlPoint = {
+                    x: from.x,
+                    y: from.y - 40
+                };
+                this.curved = true;
+                this.isLoop = true;
+            } else {
+                const dx = to.x - from.x;
+                const dy = to.y - from.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                // Define a direção inicial da curva e a preserva
+                this.curveDirection = dx < 0 ? 1 : -1;
+                
+                // Verifica se há outros estados entre os estados de origem e destino
+                const hasStatesBetween = states.some(state => {
+                    if (state === from || state === to) return false;
+                    
+                    // Calcula a distância do estado à linha entre from e to
+                    const A = to.y - from.y;
+                    const B = from.x - to.x;
+                    const C = to.x * from.y - from.x * to.y;
+                    const distance = Math.abs(A * state.x + B * state.y + C) / Math.sqrt(A * A + B * B);
+                    
+                    // Verifica se o estado está dentro do retângulo formado pelos estados from e to
+                    const minX = Math.min(from.x, to.x) - 40;
+                    const maxX = Math.max(from.x, to.x) + 40;
+                    const minY = Math.min(from.y, to.y) - 40;
+                    const maxY = Math.max(from.y, to.y) + 40;
+                    
+                    return distance < 50 && 
+                           state.x >= minX && state.x <= maxX &&
+                           state.y >= minY && state.y <= maxY;
+                });
+
+                // Se houver estados entre os pontos ou se já existir uma transição direta
+                const hasExistingTransition = transitions.some(t => 
+                    (t.from === from && t.to === to) || (t.from === to && t.to === from)
+                );
+
+                if (hasStatesBetween || hasExistingTransition) {
+                    this.controlPoint = {
+                        x: (from.x + to.x) / 2,
+                        y: (from.y + to.y) / 2 + (this.curveDirection * 80)
+                    };
+                    this.curved = true;
+                } else {
+                    this.controlPoint = {
+                        x: (from.x + to.x) / 2,
+                        y: (from.y + to.y) / 2
+                    };
+                    this.curved = false;
+                }
+                this.isLoop = false;
+            }
+        }
+
+        // Função para animar as transições
+        function animateTransitions() {
+            let needsAnimation = false;
+            
+            transitions.forEach(transition => {
+                if (transition.isAnimating && transition.animationProgress < 1) {
+                    transition.animationProgress += 0.05; // Velocidade da animação
+                    if (transition.animationProgress >= 1) {
+                        transition.animationProgress = 1;
+                        transition.isAnimating = false;
+                    }
+                    needsAnimation = true;
+                }
+            });
+
+            if (needsAnimation) {
+                drawAutomaton();
+                requestAnimationFrame(animateTransitions);
+            }
+        }
+
+        function drawTransition(transition) {
+            let cor = currentStyle.transition.line;
+            let corSeta = currentStyle.transition.arrow;
+            let largura = 2;
+            if (transition.isHighlighted === 'accept') {
+                cor = '#43aa8b';
+                corSeta = '#43aa8b';
+                largura = 4;
+            } else if (transition.isHighlighted === 'error') {
+                cor = '#d90429';
+                corSeta = '#d90429';
+                largura = 4;
+            } else if (transition.isHighlighted) {
+                cor = '#357ABD';
+                corSeta = '#357ABD';
+                largura = 4;
+            }
+            ctx.strokeStyle = cor;
+            ctx.lineWidth = largura;
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 2;
+
+            const progress = transition.animationProgress;
+
+            if (transition.isLoop) {
+                const centerX = transition.from.x;
+                const centerY = transition.from.y;
+                const stateRadius = 30;
+                const loopHeight = 40;
+                
+                // Desenha o arco do loop usando bezierCurveTo com animação
+                ctx.beginPath();
+                const startX = centerX - stateRadius + 5;
+                const startY = centerY - 15;
+                const endX = centerX + stateRadius - 5;
+                const endY = centerY - 15;
+                
+                const cp1x = centerX - stateRadius - 10;
+                const cp1y = centerY - loopHeight - 20;
+                const cp2x = centerX + stateRadius + 10;
+                const cp2y = centerY - loopHeight - 20;
+
+                if (progress < 1) {
+                    // Calcula os pontos intermediários da curva de Bezier
+                    const t = progress;
+                    const p0 = {x: startX, y: startY};
+                    const p1 = {x: cp1x, y: cp1y};
+                    const p2 = {x: cp2x, y: cp2y};
+                    const p3 = {x: endX, y: endY};
+
+                    const currentPoint = bezierPoint(p0, p1, p2, p3, t);
+                    
+                    ctx.moveTo(startX, startY);
+                    ctx.bezierCurveTo(
+                        cp1x, cp1y,
+                        cp2x, cp2y,
+                        currentPoint.x, currentPoint.y
+                    );
+                } else {
+                    ctx.moveTo(startX, startY);
+                    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY);
+                }
+                ctx.stroke();
+
+                // Só desenha a seta e o texto quando a animação estiver completa
+                if (progress === 1) {
+                    // Calcula o ângulo da tangente no ponto final
+                    const tangentX = 3 * (endX - cp2x);
+                    const tangentY = 3 * (endY - cp2y);
+                    const angle = Math.atan2(tangentY, tangentX);
+
+                    // Desenha a seta ajustada à tangente
+                    const arrowSize = 12;
+                    ctx.beginPath();
+                    ctx.moveTo(endX, endY);
+                    ctx.lineTo(
+                        endX - arrowSize * Math.cos(angle - Math.PI/6),
+                        endY - arrowSize * Math.sin(angle - Math.PI/6)
+                    );
+                    ctx.lineTo(
+                        endX - arrowSize * Math.cos(angle + Math.PI/6),
+                        endY - arrowSize * Math.sin(angle + Math.PI/6)
+                    );
+                    ctx.closePath();
+                    ctx.fillStyle = corSeta;
+                    ctx.fill();
+
+                    // Desenha o texto
+                    const textX = centerX;
+                    const textY = centerY - loopHeight - 15;
+                    
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+                    ctx.shadowBlur = 4;
+                    ctx.fillStyle = currentStyle.transition.textBg;
+                    const textWidth = ctx.measureText(transition.symbol).width;
+                    const padding = 6;
+
+                    ctx.beginPath();
+                    ctx.roundRect(
+                        textX - textWidth/2 - padding,
+                        textY - 12,
+                        textWidth + padding * 2,
+                        16 + padding,
+                        6
+                    );
+                    ctx.fill();
+
+                    ctx.shadowColor = 'transparent';
+                    ctx.fillStyle = currentStyle.transition.text;
+                    ctx.font = 'bold 14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(transition.symbol, textX, textY);
+                }
+                
+                return;
+            }
+
+            // Animação para transições normais
+            const angle = Math.atan2(
+                transition.to.y - transition.from.y,
+                transition.to.x - transition.from.x
+            );
+            const radius = 30;
+
+            const startPoint = {
+                x: transition.from.x + radius * Math.cos(angle),
+                y: transition.from.y + radius * Math.sin(angle)
+            };
+
+            const endPoint = {
+                x: transition.to.x - radius * Math.cos(angle),
+                y: transition.to.y - radius * Math.sin(angle)
+            };
+
+            ctx.beginPath();
+            if (transition.curved) {
+                ctx.moveTo(startPoint.x, startPoint.y);
+                const currentEndPoint = {
+                    x: startPoint.x + (endPoint.x - startPoint.x) * progress,
+                    y: startPoint.y + (endPoint.y - startPoint.y) * progress
+                };
+                const currentControlPoint = {
+                    x: transition.controlPoint.x,
+                    y: transition.controlPoint.y
+                };
+                
+                ctx.quadraticCurveTo(
+                    currentControlPoint.x,
+                    currentControlPoint.y,
+                    currentEndPoint.x,
+                    currentEndPoint.y
+                );
+            } else {
+                ctx.moveTo(startPoint.x, startPoint.y);
+                ctx.lineTo(
+                    startPoint.x + (endPoint.x - startPoint.x) * progress,
+                    startPoint.y + (endPoint.y - startPoint.y) * progress
+                );
+            }
+            ctx.stroke();
+
+            // Só desenha a seta e o texto quando a animação estiver completa
+            if (progress === 1) {
+                // Ponta da seta
+                let arrowAngle = transition.curved
+                    ? Math.atan2(endPoint.y - transition.controlPoint.y, endPoint.x - transition.controlPoint.x)
+                    : angle;
+
+                ctx.beginPath();
+                ctx.moveTo(endPoint.x, endPoint.y);
+                ctx.lineTo(
+                    endPoint.x - 15 * Math.cos(arrowAngle - Math.PI/6),
+                    endPoint.y - 15 * Math.sin(arrowAngle - Math.PI/6)
+                );
+                ctx.lineTo(
+                    endPoint.x - 15 * Math.cos(arrowAngle + Math.PI/6),
+                    endPoint.y - 15 * Math.sin(arrowAngle + Math.PI/6)
+                );
+                ctx.closePath();
+                ctx.fillStyle = corSeta;
+                ctx.fill();
+
+                // Texto da transição
+                let textX, textY;
+                if (transition.curved) {
+                    textX = transition.controlPoint.x;
+                    textY = transition.controlPoint.y - 15;
+                } else {
+                    textX = (startPoint.x + endPoint.x) / 2;
+                    textY = (startPoint.y + endPoint.y) / 2 - 15;
+                }
+
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+                ctx.shadowBlur = 4;
+                ctx.fillStyle = currentStyle.transition.textBg;
+                const textWidth = ctx.measureText(transition.symbol).width;
+                const padding = 6;
+                
+                ctx.beginPath();
+                ctx.roundRect(
+                    textX - textWidth/2 - padding,
+                    textY - 8 - padding/2,
+                    textWidth + padding * 2,
+                    16 + padding,
+                    6
+                );
+                ctx.fill();
+
+                ctx.shadowColor = 'transparent';
+                ctx.fillStyle = currentStyle.transition.text;
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(transition.symbol, textX, textY);
+            }
+        }
+
+        // Função auxiliar para calcular pontos em uma curva de Bezier
+        function bezierPoint(p0, p1, p2, p3, t) {
+            const cX = 3 * (p1.x - p0.x);
+            const bX = 3 * (p2.x - p1.x) - cX;
+            const aX = p3.x - p0.x - cX - bX;
+            
+            const cY = 3 * (p1.y - p0.y);
+            const bY = 3 * (p2.y - p1.y) - cY;
+            const aY = p3.y - p0.y - cY - bY;
+            
+            const x = (aX * Math.pow(t, 3)) + (bX * Math.pow(t, 2)) + (cX * t) + p0.x;
+            const y = (aY * Math.pow(t, 3)) + (bY * Math.pow(t, 2)) + (cY * t) + p0.y;
+            
+            return {x: x, y: y};
+        }
+
+        function drawState(state) {
+            // Efeito de sombra e contorno especial
+            if (state.isHighlighted === 'accept') {
+                ctx.shadowColor = '#43aa8b'; // verde para aceitação
+                ctx.shadowBlur = 30;
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = '#43aa8b';
+                ctx.beginPath();
+                ctx.arc(state.x, state.y, 34, 0, 2 * Math.PI);
+                ctx.stroke();
+            } else if (state.isHighlighted === 'error') {
+                ctx.shadowColor = '#d90429'; // vermelho para erro
+                ctx.shadowBlur = 30;
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = '#d90429';
+                ctx.beginPath();
+                ctx.arc(state.x, state.y, 34, 0, 2 * Math.PI);
+                ctx.stroke();
+            } else if (state.isHighlighted) {
+                ctx.shadowColor = '#357ABD'; // azul para caminho
+                ctx.shadowBlur = 20;
+            } else {
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+                ctx.shadowBlur = 8;
+            }
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 4;
+            // Gradiente para o estado
+            const gradient = ctx.createRadialGradient(
+                state.x - 10, state.y - 10, 0,
+                state.x, state.y, 35
+            );
+            if (state === selectedState) {
+                gradient.addColorStop(0, currentStyle.state.selected[0]);
+                gradient.addColorStop(1, currentStyle.state.selected[1]);
+            } else {
+                gradient.addColorStop(0, currentStyle.state.fill[0]);
+                gradient.addColorStop(1, currentStyle.state.fill[1]);
+            }
+            // Círculo principal
+            ctx.beginPath();
+            ctx.arc(state.x, state.y, 30, 0, 2 * Math.PI);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            ctx.strokeStyle = currentStyle.state.stroke;
+            ctx.lineWidth = state.isInitial ? 4 : 3;
+            ctx.stroke();
+            // Estado final (círculo duplo)
+            if (state.isFinal) {
+                ctx.beginPath();
+                ctx.arc(state.x, state.y, 24, 0, 2 * Math.PI);
+                ctx.strokeStyle = currentStyle.state.stroke;
+                ctx.stroke();
+            }
+            // Seta estilizada para estado inicial
+            if (state.isInitial) {
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+                ctx.shadowBlur = 4;
+                ctx.beginPath();
+                ctx.moveTo(state.x - 65, state.y);
+                ctx.quadraticCurveTo(
+                    state.x - 45,
+                    state.y,
+                    state.x - 35,
+                    state.y
+                );
+                ctx.strokeStyle = currentStyle.transition.line;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(state.x - 30, state.y);
+                ctx.lineTo(state.x - 45, state.y - 12);
+                ctx.lineTo(state.x - 45, state.y + 12);
+                ctx.closePath();
+                ctx.fillStyle = currentStyle.transition.arrow;
+                ctx.fill();
+            }
+            // Texto do estado
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowBlur = 4;
+            ctx.fillStyle = currentStyle.state.text;
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(state.label, state.x, state.y);
+        }
+
+        function drawAutomaton() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            transitions.forEach(t => drawTransition(t));
+            states.forEach(drawState);
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const clickedState = states.find(state => {
+                const dx = x - state.x;
+                const dy = y - state.y;
+                return dx * dx + dy * dy < 900;
+            });
+            
+            if (clickedState) {
+                if (transitionMode) {
+                    if (!transitionStart) {
+                        transitionStart = clickedState;
+                        selectedState = clickedState;
+                        updateModeIndicator();
+                    } else {
+                        transitionEnd = clickedState;
+                        showSymbolModal((symbol) => {
+                            addTransition(transitionStart, transitionEnd, symbol);
+                            transitionStart = null;
+                            transitionEnd = null;
+                            transitionMode = false;
+                            canvas.style.cursor = 'default';
+                            document.getElementById('transitionBtn').classList.remove('button-active');
+                            updateModeIndicator();
+                        });
+                    }
+                } else {
+                    isDragging = true;
+                    selectedState = clickedState;
+                    updateModeIndicator();
+                }
+            } else {
+                selectedState = null;
+                updateModeIndicator();
+            }
+            drawAutomaton();
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Tooltip de coordenadas
+            const tooltip = document.getElementById('coordTooltip');
+            const hoveredState = states.find(state => {
+                const dx = x - state.x;
+                const dy = y - state.y;
+                return dx * dx + dy * dy < 900;
+            });
+
+            if (hoveredState) {
+                tooltip.style.display = 'block';
+                tooltip.style.left = (e.clientX + 10) + 'px';
+                tooltip.style.top = (e.clientY + 10) + 'px';
+                tooltip.textContent = `(x: ${Math.round(hoveredState.x)}, y: ${Math.round(hoveredState.y)})`;
+            } else {
+                tooltip.style.display = 'none';
+            }
+
+            if (isDragging && selectedState) {
+                const oldX = selectedState.x;
+                const oldY = selectedState.y;
+                selectedState.x = e.clientX - rect.left;
+                selectedState.y = e.clientY - rect.top;
+                
+                transitions.forEach(t => {
+                    if (t.from === selectedState || t.to === selectedState) {
+                        // Se for um self-loop, não precisa fazer nada
+                        if (t.isLoop) return;
+
+                        const dx = t.to.x - t.from.x;
+                        const dy = t.to.y - t.from.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        // Função para verificar se há estados no caminho da transição
+                        const hasStateInPath = () => {
+                            return states.some(state => {
+                                if (state === t.from || state === t.to) return false;
+                                
+                                // Calcula a distância do estado à linha da transição
+                                const A = t.to.y - t.from.y;
+                                const B = t.from.x - t.to.x;
+                                const C = t.to.x * t.from.y - t.from.x * t.to.y;
+                                const distance = Math.abs(A * state.x + B * state.y + C) / Math.sqrt(A * A + B * B);
+                                
+                                // Aumenta a área de detecção para evitar sobreposição
+                                const minX = Math.min(t.from.x, t.to.x) - 40;
+                                const maxX = Math.max(t.from.x, t.to.x) + 40;
+                                const minY = Math.min(t.from.y, t.to.y) - 40;
+                                const maxY = Math.max(t.from.y, t.to.y) + 40;
+                                
+                                // Retorna true se o estado está muito próximo da linha
+                                return distance < 50 && 
+                                       state.x >= minX && state.x <= maxX &&
+                                       state.y >= minY && state.y <= maxY;
+                            });
+                        };
+
+                        // Função para calcular a curvatura ideal
+                        const calculateCurvature = () => {
+                            const baseCurvature = Math.min(dist * 0.4, 100); // Aumenta a curvatura base
+                            
+                            // Verifica a proximidade com outros estados
+                            const nearbyStates = states.filter(state => {
+                                if (state === t.from || state === t.to) return false;
+                                
+                                const midX = (t.from.x + t.to.x) / 2;
+                                const midY = (t.from.y + t.to.y) / 2;
+                                const distToMid = Math.sqrt(
+                                    Math.pow(state.x - midX, 2) + 
+                                    Math.pow(state.y - midY, 2)
+                                );
+                                
+                                return distToMid < 80; // Aumenta o raio de detecção
+                            });
+                            
+                            // Aumenta a curvatura baseado na proximidade dos estados
+                            return baseCurvature * (1 + (nearbyStates.length * 0.2));
+                        };
+
+                        // Verifica se há outras transições paralelas entre os mesmos estados
+                        const hasParallelTransition = () => {
+                            return transitions.some(other => {
+                                if (other === t) return false;
+                                return (other.from === t.from && other.to === t.to) ||
+                                       (other.from === t.to && other.to === t.from);
+                            });
+                        };
+
+                        // Decide se a transição deve ser curva
+                        const shouldBeCurved = hasStateInPath() || hasParallelTransition();
+
+                        if (shouldBeCurved) {
+                            // Se precisa ser curva, calcula o ponto de controle
+                            const normalX = -dy / dist;
+                            const normalY = dx / dist;
+                            const curvature = calculateCurvature();
+                            
+                            // Usa a direção original preservada na transição
+                            t.controlPoint = {
+                                x: (t.from.x + t.to.x) / 2 + normalX * curvature * t.curveDirection,
+                                y: (t.from.y + t.to.y) / 2 + normalY * curvature * t.curveDirection
+                            };
+                            t.curved = true;
+                        } else {
+                            // Se não precisa ser curva, mantém reta
+                            t.controlPoint = {
+                                x: (t.from.x + t.to.x) / 2,
+                                y: (t.from.y + t.to.y) / 2
+                            };
+                            t.curved = false;
+                        }
+                    }
+                });
+                
+                drawAutomaton();
+            }
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        function addState() {
+            const label = `q${states.length}`;
+            const state = new State(100 + states.length * 100, 200, label);
+            states.push(state);
+            historico.adicionarAcao(new AcaoAdicionarEstado(state));
+            drawAutomaton();
+        }
+
+        function toggleInitialState() {
+            if (selectedState) {
+                const valorAntigo = selectedState.isInitial;
+                historico.adicionarAcao(new AcaoAlterarTipoEstado(selectedState, 'initial', valorAntigo));
+                selectedState.isInitial = !valorAntigo;
+                drawAutomaton();
+            }
+        }
+
+        function toggleFinalState() {
+            if (selectedState) {
+                const valorAntigo = selectedState.isFinal;
+                historico.adicionarAcao(new AcaoAlterarTipoEstado(selectedState, 'final', valorAntigo));
+                selectedState.isFinal = !valorAntigo;
+                drawAutomaton();
+            }
+        }
+
+        function setTransitionMode() {
+            transitionMode = !transitionMode;
+            const transitionBtn = document.getElementById('transitionBtn');
+            const modeIndicator = document.getElementById('modeIndicator');
+            
+            if (transitionMode) {
+                canvas.style.cursor = 'crosshair';
+                transitionBtn.classList.add('button-active');
+                modeIndicator.textContent = 'Modo: Criação de Transição';
+                modeIndicator.classList.add('visible');
+            } else {
+                canvas.style.cursor = 'default';
+                transitionBtn.classList.remove('button-active');
+                modeIndicator.textContent = 'Modo: Normal';
+                modeIndicator.classList.remove('visible');
+                transitionStart = null;
+            }
+        }
+
+        function clearCanvas() {
+            states = [];
+            transitions = [];
+            selectedState = null;
+            transitionStart = null;
+            transitionMode = false;
+            canvas.style.cursor = 'default';
+            drawAutomaton();
+        }
+
+        function deleteElement() {
+            if (selectedState) {
+                const estadoParaRemover = selectedState;
+                const transicoesRelacionadas = transitions.filter(t => 
+                    t.from === estadoParaRemover || t.to === estadoParaRemover
+                );
+                
+                historico.adicionarAcao(new AcaoRemoverEstado(estadoParaRemover, transicoesRelacionadas));
+                
+                transitions = transitions.filter(t => 
+                    t.from !== selectedState && t.to !== selectedState
+                );
+                states = states.filter(s => s !== selectedState);
+                selectedState = null;
+                drawAutomaton();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            // Ignora atalhos se estiver com algum input focado
+            if (e.target.tagName === 'INPUT') return;
+
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                e.preventDefault();
+                deleteElement();
+            } else if (e.key.toLowerCase() === 'a') {
+                e.preventDefault();
+                addState();
+            } else if (e.key.toLowerCase() === 't') {
+                e.preventDefault();
+                setTransitionMode();
+            } else if (e.key.toLowerCase() === 'i') {
+                e.preventDefault();
+                toggleInitialState();
+            } else if (e.key.toLowerCase() === 'f') {
+                e.preventDefault();
+                toggleFinalState();
+            } else if (e.key.toLowerCase() === 'z' && e.ctrlKey) {
+                e.preventDefault();
+                historico.undo();
+            } else if (e.key.toLowerCase() === 'y' && e.ctrlKey) {
+                e.preventDefault();
+                historico.redo();
+            }
+        });
+
+        function mostrarModalNomeArquivo(tipo) {
+            tipoExportacaoAtual = tipo;
+            const modal = document.getElementById('filename-modal');
+            const overlay = document.getElementById('modal-overlay');
+            const input = document.getElementById('filename-input');
+            const extensionSpan = document.getElementById('file-extension');
+            
+            input.value = '';
+            input.placeholder = 'Digite o nome do arquivo';
+            
+            // Corrige a verificação da extensão
+            if (tipo === 'txt') {
+                extensionSpan.textContent = '.txt';
+            } else if (tipo === 'json') {
+                extensionSpan.textContent = '.json';
+            } else if (tipo === 'jpeg') {
+                extensionSpan.textContent = '.jpg';
+            }
+            
+            modal.style.display = 'block';
+            overlay.style.display = 'block';
+            
+            setTimeout(() => {
+                input.focus();
+            }, 100);
+
+            document.addEventListener('keydown', fecharModalComEscape);
+        }
+
+        function fecharModalComEscape(e) {
+            if (e.key === 'Escape') {
+                cancelarExportacao();
+            }
+        }
+
+        function cancelarExportacao() {
+            const modal = document.getElementById('filename-modal');
+            const overlay = document.getElementById('modal-overlay');
+            modal.style.display = 'none';
+            overlay.style.display = 'none';
+            document.getElementById('filename-input').value = '';
+            
+            // Remove o listener do Escape
+            document.removeEventListener('keydown', fecharModalComEscape);
+        }
+
+        function confirmarExportacao() {
+            const filename = document.getElementById('filename-input').value.trim();
+            
+            if (!filename) {
+                alert('Por favor, digite um nome para o arquivo.');
+                return;
+            }
+            
+            if (tipoExportacaoAtual === 'json') {
+                exportarJSONComNome(filename);
+            } else if (tipoExportacaoAtual === 'jpeg') {
+                exportarJPEGComNome(filename);
+            } else if (tipoExportacaoAtual === 'txt') {
+                exportarTextoComNome(filename);
+            }
+            cancelarExportacao();
+        }
+
+        function exportarJSON() {
+            mostrarModalNomeArquivo('json');
+        }
+
+        function exportarJSONComNome(filename) {
+            const automato = {
+                estados: states.map(estado => ({
+                    x: Math.round(estado.x),
+                    y: Math.round(estado.y),
+                    label: estado.label,
+                    isInitial: estado.isInitial,
+                    isFinal: estado.isFinal
+                })),
+                transicoes: transitions.map(transicao => ({
+                    de: transicao.from.label,
+                    para: transicao.to.label,
+                    simbolo: transicao.symbol,
+                    curved: transicao.curved,
+                    isLoop: transicao.isLoop,
+                    controlPoint: transicao.controlPoint ? {
+                        x: Math.round(transicao.controlPoint.x),
+                        y: Math.round(transicao.controlPoint.y)
+                    } : null
+                })),
+                alfabeto: alphabet
+            };
+
+            const jsonString = JSON.stringify(automato, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${filename}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function exportarJPEG() {
+            mostrarModalNomeArquivo('jpeg');
+        }
+
+        function exportarJPEGComNome(filename) {
+            const dataOriginal = canvas.toDataURL('image/jpeg', 1.0);
+            
+            const link = document.createElement('a');
+            link.download = `${filename}.jpg`;
+            link.href = dataOriginal;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Adiciona eventos para o input do nome do arquivo
+        document.getElementById('filename-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                confirmarExportacao();
+            }
+        });
+
+        // Impede caracteres inválidos para nome de arquivo
+        document.getElementById('filename-input').addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[\\/:*?"<>|]/g, '');
+        });
+
+        function importarJSON() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = function(e) {
+                const arquivo = e.target.files[0];
+                const leitor = new FileReader();
+                
+                leitor.onload = function(e) {
+                    try {
+                        const automato = JSON.parse(e.target.result);
+                        
+                        // Validação inicial dos dados
+                        if (!automato.estados || !Array.isArray(automato.estados) ||
+                            !automato.transicoes || !Array.isArray(automato.transicoes) ||
+                            !automato.alfabeto || !Array.isArray(automato.alfabeto)) {
+                            throw new Error('Formato de arquivo inválido');
+                        }
+
+                        // Limpa o estado atual
+                        states = [];
+                        transitions = [];
+                        alphabet = automato.alfabeto;
+                        garanteLambda(); // Garante lambda após importar
+                        
+                        // Mapa para armazenar referências dos estados
+                        const estadosMap = new Map();
+                        
+                        // Primeiro passo: criar todos os estados
+                        automato.estados.forEach(estado => {
+                            if (!estado.label) {
+                                console.warn('Estado sem label encontrado:', estado);
+                                return;
+                            }
+
+                            const novoEstado = new State(
+                                Number(estado.x) || 0,
+                                Number(estado.y) || 0,
+                                estado.label
+                            );
+                            novoEstado.isInitial = Boolean(estado.isInitial);
+                            novoEstado.isFinal = Boolean(estado.isFinal);
+                            states.push(novoEstado);
+                            estadosMap.set(estado.label, novoEstado);
+                        });
+
+                        // Validação após criação dos estados
+                        if (states.length !== automato.estados.length) {
+                            console.warn(`Alguns estados não foram importados corretamente. 
+                                       Esperado: ${automato.estados.length}, Importado: ${states.length}`);
+                        }
+                        
+                        // Segundo passo: criar todas as transições
+                        automato.transicoes.forEach(transicao => {
+                            const estadoOrigem = estadosMap.get(transicao.de);
+                            const estadoDestino = estadosMap.get(transicao.para);
+                            
+                            if (!estadoOrigem || !estadoDestino) {
+                                console.warn('Transição com estado inválido:', transicao);
+                                return;
+                            }
+
+                            if (!transicao.simbolo) {
+                                console.warn('Transição sem símbolo:', transicao);
+                                return;
+                            }
+
+                            const novaTransicao = new Transition(estadoOrigem, estadoDestino, transicao.simbolo);
+                            
+                            // Restaura as propriedades da transição
+                            if (transicao.controlPoint) {
+                                novaTransicao.controlPoint = {
+                                    x: Number(transicao.controlPoint.x) || 0,
+                                    y: Number(transicao.controlPoint.y) || 0
+                                };
+                            }
+                            
+                            novaTransicao.curved = Boolean(transicao.curved);
+                            novaTransicao.isLoop = Boolean(transicao.isLoop);
+                            novaTransicao.animationProgress = 1;
+                            novaTransicao.isAnimating = false;
+                            
+                            transitions.push(novaTransicao);
+                        });
+
+                        // Validação após criação das transições
+                        if (transitions.length !== automato.transicoes.length) {
+                            console.warn(`Algumas transições não foram importadas corretamente. 
+                                       Esperado: ${automato.transicoes.length}, Importado: ${transitions.length}`);
+                        }
+                        
+                        // Atualiza a visualização
+                        updateSymbolList();
+                        drawAutomaton();
+                        
+                        // Log de sucesso com detalhes
+                        console.log(`Importação concluída:
+                            Estados: ${states.length}/${automato.estados.length}
+                            Transições: ${transitions.length}/${automato.transicoes.length}
+                            Símbolos: ${alphabet.length}/${automato.alfabeto.length}`);
+                        
+                    } catch (erro) {
+                        console.error('Erro detalhado:', erro);
+                        alert('Erro ao importar o arquivo: ' + erro.message);
+                    }
+                };
+                
+                leitor.readAsText(arquivo);
+            };
+            
+            input.click();
+        }
+
+        function clearAlphabet() {
+            if (confirm('Tem certeza que deseja limpar todo o alfabeto?')) {
+                alphabet = [];  // Limpa completamente
+                garanteLambda(); // Garante que o lambda seja readicionado
+                transitions = transitions.filter(t => t.symbol === 'λ');
+                drawAutomaton();
+            }
+        }
+
+        function addTransition(from, to, symbol) {
+            const transition = new Transition(from, to, symbol);
+            transitions.push(transition);
+            historico.adicionarAcao(new AcaoAdicionarTransicao(transition));
+            requestAnimationFrame(animateTransitions);
+            drawAutomaton();
+        }
+
+        // Adiciona a função para alternar o tema
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            
+            // Atualiza o estado do checkbox
+            document.getElementById('theme-toggle').checked = newTheme === 'dark';
+            
+            // Atualiza a cor do canvas
+            canvas.style.background = getComputedStyle(document.body).getPropertyValue('--container-bg');
+            
+            // Redesenha o autômato
+            drawAutomaton();
+        }
+
+        // Configura o estado inicial do checkbox de tema
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            document.getElementById('theme-toggle').checked = currentTheme === 'dark';
+            garanteLambda(); // Garante lambda no carregamento da página
+            drawAutomaton();
+        });
+
+        function exportarTexto() {
+            mostrarModalNomeArquivo('txt');
+        }
+        
+        function exportarTextoComNome(filename) {
+            try {
+                // Cria o cabeçalho do arquivo
+                let conteudo = "Autômato Finito\n";
+                conteudo += "=============\n\n";
+                
+                // Adiciona informações do alfabeto
+                conteudo += "Alfabeto:\n";
+                conteudo += "---------\n";
+                conteudo += alphabet.join(", ") + "\n\n";
+                
+                // Adiciona informações dos estados
+                conteudo += "Estados:\n";
+                conteudo += "--------\n";
+                states.forEach(estado => {
+                    let infoEstado = `${estado.label}`;
+                    
+                    // Adiciona informações de tipo de estado
+                    let tipos = [];
+                    if (estado.isInitial) tipos.push("inicial");
+                    if (estado.isFinal) tipos.push("final");
+                    
+                    if (tipos.length > 0) {
+                        infoEstado += ` [${tipos.join(", ")}]`;
+                    }
+                    
+                    // Adiciona coordenadas
+                    infoEstado += ` (x=${Math.round(estado.x)}, y=${Math.round(estado.y)})`;
+                    
+                    conteudo += infoEstado + "\n";
+                });
+                conteudo += "\n";
+                
+                // Adiciona informações das transições
+                conteudo += "Transições:\n";
+                conteudo += "-----------\n";
+                
+                // Organiza as transições por estado de origem
+                const transicoesOrdenadas = transitions.sort((a, b) => {
+                    if (a.from.label !== b.from.label) {
+                        return a.from.label.localeCompare(b.from.label);
+                    }
+                    if (a.to.label !== b.to.label) {
+                        return a.to.label.localeCompare(b.to.label);
+                    }
+                    return a.symbol.localeCompare(b.symbol);
+                });
+                
+                transicoesOrdenadas.forEach(transicao => {
+                    conteudo += `${transicao.from.label} --[${transicao.symbol}]--> ${transicao.to.label}\n`;
+                });
+                
+                // Cria e faz o download do arquivo
+                const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${filename}.txt`;
+                
+                // Adiciona o link ao documento, clica e remove
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Limpa o URL criado
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+                
+            } catch (erro) {
+                console.error('Erro ao exportar texto:', erro);
+                alert('Ocorreu um erro ao exportar o arquivo de texto. Por favor, tente novamente.');
+            }
+        }
+
+        function importarTexto() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt';
+            
+            input.onchange = function(e) {
+                const arquivo = e.target.files[0];
+                const leitor = new FileReader();
+                
+                leitor.onload = function(e) {
+                    try {
+                        const conteudo = e.target.result;
+                        const linhas = conteudo.split('\n').map(l => l.trim()).filter(l => l);
+                        
+                        // Limpa o estado atual
+                        states = [];
+                        transitions = [];
+                        alphabet = ['λ'];
+                        
+                        let secaoAtual = '';
+                        const estadosMap = new Map();
+                        
+                        // Processa linha por linha
+                        linhas.forEach(linha => {
+                            // Identifica a seção
+                            if (linha.includes('Alfabeto:')) {
+                                secaoAtual = 'alfabeto';
+                                return;
+                            } else if (linha.includes('Estados:')) {
+                                secaoAtual = 'estados';
+                                return;
+                            } else if (linha.includes('Transições:')) {
+                                secaoAtual = 'transicoes';
+                                return;
+                            }
+                            
+                            // Ignora linhas de cabeçalho e separadores
+                            if (linha.startsWith('=') || linha.startsWith('-')) {
+                                return;
+                            }
+                            
+                            // Processa cada seção
+                            switch (secaoAtual) {
+                                case 'alfabeto':
+                                    if (linha.includes(',')) {
+                                        const simbolos = linha.split(',').map(s => s.trim());
+                                        simbolos.forEach(s => {
+                                            if (s !== 'λ' && !alphabet.includes(s)) {
+                                                alphabet.push(s);
+                                            }
+                                        });
+                                    } else if (linha && linha !== 'λ' && !alphabet.includes(linha)) {
+                                        alphabet.push(linha);
+                                    }
+                                    break;
+                                    
+                                case 'estados':
+                                    const estadoMatch = linha.match(/^(q\d+)(?:\s+\[(.*?)\])?(?:\s+\(x=(\d+),\s*y=(\d+)\))?/);
+                                    if (estadoMatch) {
+                                        const [, label, tipos, x, y] = estadoMatch;
+                                        const estado = new State(
+                                            Number(x) || 100 + states.length * 100,
+                                            Number(y) || 200,
+                                            label
+                                        );
+                                        
+                                        if (tipos) {
+                                            estado.isInitial = tipos.includes('inicial');
+                                            estado.isFinal = tipos.includes('final');
+                                        }
+                                        
+                                        states.push(estado);
+                                        estadosMap.set(label, estado);
+                                    }
+                                    break;
+                                    
+                                case 'transicoes':
+                                    const transicaoMatch = linha.match(/^(q\d+)\s+--\[(.*?)\]-->\s+(q\d+)/);
+                                    if (transicaoMatch) {
+                                        const [, de, simbolo, para] = transicaoMatch;
+                                        const estadoOrigem = estadosMap.get(de);
+                                        const estadoDestino = estadosMap.get(para);
+                                        
+                                        if (estadoOrigem && estadoDestino) {
+                                            const transicao = new Transition(estadoOrigem, estadoDestino, simbolo);
+                                            transicao.animationProgress = 1;
+                                            transicao.isAnimating = false;
+                                            transitions.push(transicao);
+                                        }
+                                    }
+                                    break;
+                            }
+                        });
+
+                        // Atualiza a visualização
+                        updateSymbolList();
+                        drawAutomaton();
+                        
+                        console.log(`Importação de texto concluída:
+                            Estados: ${states.length}
+                            Transições: ${transitions.length}
+                            Símbolos: ${alphabet.length}`);
+                            
+                    } catch (erro) {
+                        console.error('Erro detalhado:', erro);
+                        alert('Erro ao importar o arquivo de texto: ' + erro.message);
+                    }
+                };
+                
+                leitor.readAsText(arquivo);
+            };
+            
+            input.click();
+        }
+
+        // Atualiza o indicador de modo quando um estado é selecionado
+        function updateModeIndicator() {
+            const modeIndicator = document.getElementById('modeIndicator');
+            if (selectedState) {
+                modeIndicator.textContent = `Estado Selecionado: ${selectedState.label}`;
+                modeIndicator.classList.add('visible');
+            } else if (!transitionMode) {
+                modeIndicator.classList.remove('visible');
+            }
+        }
+
+        // Adiciona função para calcular ponto em uma curva quadrática de Bézier
+        function quadraticBezier(p0, p1, p2, t) {
+            const x = (1 - t) * (1 - t) * p0.x + 2 * (1 - t) * t * p1.x + t * t * p2.x;
+            const y = (1 - t) * (1 - t) * p0.y + 2 * (1 - t) * t * p1.y + t * t * p2.y;
+            return { x, y };
+        }
+
+        // Função para animar o token ao longo do caminho
+        function simularPalavraAnimada() {
+            states.forEach(s => s.isHighlighted = false);
+            transitions.forEach(t => t.isHighlighted = false);
+            const palavra = document.getElementById('input-palavra').value;
+            const resultado = document.getElementById('resultado-simulacao');
+            let estadoAtual = states.find(s => s.isInitial);
+            if (!estadoAtual) {
+                resultado.textContent = 'Defina um estado inicial!';
+                resultado.style.color = '#d90429';
+                drawAutomaton();
+                return;
+            }
+            let caminho = [estadoAtual];
+            let caminhoTransicoes = [];
+            let erroNoPasso = -1;
+            for (let i = 0; i < palavra.length; i++) {
+                const simbolo = palavra[i];
+                const trans = transitions.find(t => t.from === estadoAtual && t.symbol === simbolo);
+                if (!trans) {
+                    erroNoPasso = i;
+                    break;
+                }
+                caminhoTransicoes.push(trans);
+                estadoAtual = trans.to;
+                caminho.push(estadoAtual);
+            }
+            const aceita = erroNoPasso === -1 && estadoAtual.isFinal;
+            let passo = 0;
+            let tokenCor = '#357ABD';
+            let tokenErro = false;
+            function animarToken() {
+                if (passo < caminhoTransicoes.length) {
+                    const trans = caminhoTransicoes[passo];
+                    const from = trans.from;
+                    const to = trans.to;
+                    let t = 0;
+                    const duracao = 900; // ms
+                    const start = performance.now();
+                    function animarFrame(now) {
+                        t = Math.min((now - start) / duracao, 1);
+                        drawAutomaton();
+                        // Calcula posição do token
+                        let pos;
+                        if (trans.isLoop) {
+                            // Self-loop: curva de Bézier cúbica
+                            const centerX = from.x;
+                            const centerY = from.y;
+                            const stateRadius = 30;
+                            const loopHeight = 40;
+                            const startX = centerX - stateRadius + 5;
+                            const startY = centerY - 15;
+                            const endX = centerX + stateRadius - 5;
+                            const endY = centerY - 15;
+                            const cp1x = centerX - stateRadius - 10;
+                            const cp1y = centerY - loopHeight - 20;
+                            const cp2x = centerX + stateRadius + 10;
+                            const cp2y = centerY - loopHeight - 20;
+                            function cubicBezier(p0, p1, p2, p3, t) {
+                                const x = Math.pow(1-t,3)*p0.x + 3*Math.pow(1-t,2)*t*p1.x + 3*(1-t)*t*t*p2.x + t*t*t*p3.x;
+                                const y = Math.pow(1-t,3)*p0.y + 3*Math.pow(1-t,2)*t*p1.y + 3*(1-t)*t*t*p2.y + t*t*t*p3.y;
+                                return {x, y};
+                            }
+                            pos = cubicBezier(
+                                {x: startX, y: startY},
+                                {x: cp1x, y: cp1y},
+                                {x: cp2x, y: cp2y},
+                                {x: endX, y: endY},
+                                t
+                            );
+                        } else if (trans.curved) {
+                            const angle = Math.atan2(to.y - from.y, to.x - from.x);
+                            const radius = 30;
+                            const startPoint = {
+                                x: from.x + radius * Math.cos(angle),
+                                y: from.y + radius * Math.sin(angle)
+                            };
+                            const endPoint = {
+                                x: to.x - radius * Math.cos(angle),
+                                y: to.y - radius * Math.sin(angle)
+                            };
+                            pos = quadraticBezier(startPoint, trans.controlPoint, endPoint, t);
+                        } else {
+                            const angle = Math.atan2(to.y - from.y, to.x - from.x);
+                            const radius = 30;
+                            const startPoint = {
+                                x: from.x + radius * Math.cos(angle),
+                                y: from.y + radius * Math.sin(angle)
+                            };
+                            const endPoint = {
+                                x: to.x - radius * Math.cos(angle),
+                                y: to.y - radius * Math.sin(angle)
+                            };
+                            pos = {
+                                x: startPoint.x + (endPoint.x - startPoint.x) * t,
+                                y: startPoint.y + (endPoint.y - startPoint.y) * t
+                            };
+                        }
+                        // Cor do token
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(pos.x, pos.y, 13, 0, 2 * Math.PI);
+                        ctx.fillStyle = tokenCor;
+                        ctx.shadowColor = tokenCor + '88';
+                        ctx.shadowBlur = 16;
+                        ctx.fill();
+                        ctx.restore();
+                        // Atualiza caminho parcial
+                        resultado.textContent = `Caminho: ${caminho.slice(0, passo+2).map(e => e.label).join(' → ')}`;
+                        resultado.style.color = '#357ABD';
+                        if (t < 1) {
+                            requestAnimationFrame(animarFrame);
+                        } else {
+                            passo++;
+                            setTimeout(animarToken, 80);
+                        }
+                    }
+                    requestAnimationFrame(animarFrame);
+                } else {
+                    // Chegou ao fim do caminho
+                    drawAutomaton();
+                    let finalCor = aceita ? '#43aa8b' : '#d90429';
+                    let finalEstado = caminho[caminho.length - 1];
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(finalEstado.x, finalEstado.y, 18, 0, 2 * Math.PI);
+                    ctx.strokeStyle = finalCor;
+                    ctx.lineWidth = 5;
+                    ctx.shadowColor = finalCor + '88';
+                    ctx.shadowBlur = 18;
+                    ctx.stroke();
+                    ctx.restore();
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(finalEstado.x, finalEstado.y, 13, 0, 2 * Math.PI);
+                    ctx.fillStyle = finalCor;
+                    ctx.shadowColor = finalCor + '88';
+                    ctx.shadowBlur = 16;
+                    ctx.fill();
+                    ctx.restore();
+                    // Mensagem final
+                    if (erroNoPasso !== -1) {
+                        resultado.innerHTML = `Caminho: ${caminho.slice(0, erroNoPasso+1).map(e => e.label).join(' → ')}<br><b style='color:#d90429'>Rejeitada! (erro no símbolo '${palavra[erroNoPasso] || ''}')</b>`;
+                        resultado.style.color = '';
+                    } else if (aceita) {
+                        resultado.innerHTML = `Caminho: ${caminho.map(e => e.label).join(' → ')}<br><b style='color:#43aa8b'>Aceita!</b>`;
+                        resultado.style.color = '';
+                    } else {
+                        resultado.innerHTML = `Caminho: ${caminho.map(e => e.label).join(' → ')}<br><b style='color:#d90429'>Rejeitada!</b>`;
+                        resultado.style.color = '';
+                    }
+                    setTimeout(() => {
+                        drawAutomaton();
+                        resultado.textContent = '';
+                    }, 2000);
+                }
+            }
+            animarToken();
+        }
+
+        drawAutomaton();
+    </script>
+</body>
+</html>
